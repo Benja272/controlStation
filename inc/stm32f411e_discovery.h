@@ -169,6 +169,13 @@
 #define ACCELERO_INT2_EXTI_IRQn                 EXTI9_5_IRQn 
 
 
+/*############################### SENSOR LUZ ##############################*/
+#define SENSOR_LUZ_PIN 							GPIO_PIN_5
+#define SENSOR_LUZ_PORT 						GPIOC
+
+
+
+
 
 #ifdef __cplusplus
 }

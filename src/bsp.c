@@ -21,7 +21,7 @@ uint32_t SpixTimeout = SPIx_TIMEOUT_MAX;    /*<! Value of Timeout when SPI commu
 
 static I2C_HandleTypeDef I2cHandle;
 static SPI_HandleTypeDef SpiHandle;
-
+ADC_HandleTypeDef hadc1;
 
 /* I2Cx bus function */
 static void    I2Cx_Init(void);
@@ -56,23 +56,55 @@ uint8_t COMPASSACCELERO_IO_Read(uint16_t DeviceAddr, uint8_t RegisterAddr);
 
 
 
+/* Cosas agregadas */
 void 	Error_Handler(void);
 void 	SystemClock_Config(void);
 
 
+void    BSP_LUZ_Init(void);
+void    ADC1_Init(void);
+
+
+
+/* Inicializacion de la placa */
 void BSP_Init(){
 	HAL_Init();
 	SystemClock_Config();
 
-	/* Inicializacion de los LEDS*/
+	/* Inicializacion de los LEDS */
 	BSP_LED_Init(LED_RED);
 	BSP_LED_Init(LED_GREEN);
 	BSP_LED_Init(LED_ORANGE);
 	BSP_LED_Init(LED_BLUE);
+
+	/* Inicializamos el sensor de luz */
+	BSP_LUZ_Init();
+
+	/* Inicializamos el conversor ADC */
+	ADC1_Init();
 }
 
+/* Delay bloqueante */
 void BSP_Delay(uint32_t ms){
 	HAL_Delay(ms);
+}
+
+void BSP_LUZ_Init(){
+	/* Inicializamos el clock del puerto del sensor */
+	 __HAL_RCC_GPIOC_CLK_ENABLE();
+	 __HAL_RCC_GPIOA_CLK_ENABLE();
+	 GPIO_InitTypeDef GPIO_InitStruct = {0};
+	 /* Configuracion GPIO del sensor */
+	 GPIO_InitStruct.Pin = SENSOR_LUZ_PIN;
+	 GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+	 GPIO_InitStruct.Pull = GPIO_NOPULL;
+	 HAL_GPIO_Init(SENSOR_LUZ_PORT, &GPIO_InitStruct);
+}
+
+uint32_t BSP_LUZ_GetState(){
+	uint32_t luz_state;
+	luz_state = HAL_GPIO_ReadPin(SENSOR_LUZ_PORT, SENSOR_LUZ_PIN);
+	return luz_state;
 }
 
 /**
@@ -193,6 +225,57 @@ uint32_t BSP_PB_GetState(Button_TypeDef Button)
 {
   return HAL_GPIO_ReadPin(BUTTON_PORT[Button], BUTTON_PIN[Button]);
 }
+
+
+
+float BSP_BOARD_GetTemp(void){
+	ADC_ChannelConfTypeDef sConfig = {0};
+	uint32_t ADCValue;
+	float Vsense, Temp;
+
+	sConfig.Channel = ADC_CHANNEL_TEMPSENSOR;
+	sConfig.Rank    = 1;
+	sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+	if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK) {
+			Error_Handler();
+	}
+
+	HAL_ADC_Start(&hadc1);
+
+	if(HAL_ADC_PollForConversion(&hadc1, 100) != HAL_OK){
+		return 0;
+	}
+
+	ADCValue = HAL_ADC_GetValue(&hadc1);
+	Vsense   = (float)ADCValue * 3000 / ((1<<12) - 1);
+	Temp     = (Vsense - 760) / 2.5 + 25;
+	return Temp;
+}
+
+/* Conectar el sensor al PA1 (ADC_CHANNEL_1) */
+float BSP_SUELO_GetHum(void){
+	ADC_ChannelConfTypeDef sConfig = {0};
+	float ADCValue;
+	sConfig.Channel = ADC_CHANNEL_1;
+	sConfig.Rank    = 1;
+	sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+
+	if(HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK){
+		Error_Handler();
+	}
+
+	HAL_ADC_Start(&hadc1);
+	if(HAL_ADC_PollForConversion(&hadc1, 100) != HAL_OK){
+			return 0;
+	}
+	ADCValue = HAL_ADC_GetValue(&hadc1);
+	ADCValue = 1 - ADCValue/4095;
+	return ADCValue;
+}
+
+
+
+
 
 /*******************************************************************************
                             BUS OPERATIONS
@@ -643,19 +726,68 @@ uint8_t COMPASSACCELERO_IO_Read(uint16_t DeviceAddr, uint8_t RegisterAddr)
 
 
 
+void ADC1_Init(){
+	ADC_ChannelConfTypeDef sConfig = {0};
+	hadc1.Instance = ADC1;
+	hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV2;
+	hadc1.Init.Resolution = ADC_RESOLUTION_12B;
+	hadc1.Init.ScanConvMode = DISABLE;
+	hadc1.Init.ContinuousConvMode = DISABLE;
+	hadc1.Init.DiscontinuousConvMode = DISABLE;
+	hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+	hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+	hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+	hadc1.Init.NbrOfConversion = 1;
+	hadc1.Init.DMAContinuousRequests = DISABLE;
+	hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+	if (HAL_ADC_Init(&hadc1) != HAL_OK) {
+		Error_Handler();
+	}
+}
+
+void HAL_ADC_MspInit(ADC_HandleTypeDef* adcHandle)
+{
+
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  if(adcHandle->Instance==ADC1)
+  {
+    /* ADC1 clock enable */
+    __HAL_RCC_ADC1_CLK_ENABLE();
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    /**ADC1 GPIO Configuration
+    	PA1 ------> ADC1_IN1
+    */
+    GPIO_InitStruct.Pin = GPIO_PIN_1;
+    GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  }
+}
+
+void HAL_ADC_MspDeInit(ADC_HandleTypeDef* adcHandle)
+{
+  if(adcHandle->Instance==ADC1)
+  {
+    /* Peripheral clock disable */
+    __HAL_RCC_ADC1_CLK_DISABLE();
+
+    /**ADC1 GPIO Configuration
+    	PA1 ------> ADC1_IN1
+    */
+    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_1);
+  }
+}
+
+
+
 void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-  /** Configure the main internal regulator output voltage
-  */
   __HAL_RCC_PWR_CLK_ENABLE();
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
-  /** Initializes the RCC Oscillators according to the specified parameters
-  * in the RCC_OscInitTypeDef structure.
-  */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
@@ -670,8 +802,6 @@ void SystemClock_Config(void)
     Error_Handler();
   }
 
-  /** Initializes the CPU, AHB and APB buses clocks
-  */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
@@ -684,6 +814,8 @@ void SystemClock_Config(void)
     Error_Handler();
   }
 }
+
+
 
 void Error_Handler()
 {
