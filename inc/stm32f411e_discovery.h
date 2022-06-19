@@ -173,7 +173,8 @@
 #define SENSOR_LUZ_PIN 							GPIO_PIN_5
 #define SENSOR_LUZ_PORT 						GPIOC
 
-
+#define DHT11_USART_PORT						GPIOA
+#define DHT11_USART_Tx_PIN						GPIO_PIN_15
 
 
 

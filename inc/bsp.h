@@ -32,6 +32,13 @@ uint32_t 	BSP_PB_GetState(Button_TypeDef Button);
 uint32_t    BSP_LUZ_GetState(void);
 float 		BSP_BOARD_GetTemp(void);
 float       BSP_SUELO_GetHum(void);
-
+void 		Error_Handler(void);
+//dht11
+void BSP_DHT11_Init(void);
+uint8_t *BSP_DHT11_Read(void);
+//tim
+void BSP_TIM3_Init(void);
+//usart
+void BSP_USART1_Init(void);
 
 #endif /* BSP_H_ */

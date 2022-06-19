@@ -19,6 +19,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "tim.h"
+#include "bsp.h"
 #include "stm32f4xx.h"
 
 
@@ -29,7 +30,7 @@
 TIM_HandleTypeDef htim3;
 
 /* TIM3 init function */
-void MX_TIM3_Init(void)
+void TIM3_Init(void)
 {
 
   /* USER CODE BEGIN TIM3_Init 0 */
