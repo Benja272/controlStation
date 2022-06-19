@@ -19,6 +19,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "usart.h"
+#include "bsp.h"
 #include "stm32f4xx.h"
 /* USER CODE BEGIN 0 */
 
@@ -28,7 +29,7 @@ UART_HandleTypeDef huart1;
 
 /* USART1 init function */
 
-void MX_USART1_UART_Init(void)
+void USART1_UART_Init(void)
 {
 
   /* USER CODE BEGIN USART1_Init 0 */

@@ -1,5 +1,8 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f411e_discovery.h"
+#include "mk_dht11.h"
+#include "tim.h"
+#include "usart.h"
 #include "bsp.h"
 
 GPIO_TypeDef* GPIO_PORT[LEDn] = {LED4_GPIO_PORT, 
@@ -22,6 +25,7 @@ uint32_t SpixTimeout = SPIx_TIMEOUT_MAX;    /*<! Value of Timeout when SPI commu
 static I2C_HandleTypeDef I2cHandle;
 static SPI_HandleTypeDef SpiHandle;
 ADC_HandleTypeDef hadc1;
+dht11_t dht;
 
 /* I2Cx bus function */
 static void    I2Cx_Init(void);
@@ -57,12 +61,12 @@ uint8_t COMPASSACCELERO_IO_Read(uint16_t DeviceAddr, uint8_t RegisterAddr);
 
 
 /* Cosas agregadas */
-void 	Error_Handler(void);
 void 	SystemClock_Config(void);
 
 
 void    BSP_LUZ_Init(void);
 void    ADC1_Init(void);
+void BSP_LED_Init(Led_TypeDef Led);
 
 
 
@@ -82,6 +86,15 @@ void BSP_Init(){
 
 	/* Inicializamos el conversor ADC */
 	ADC1_Init();
+
+	// Inicializamos el timer 3
+	BSP_TIM3_Init();
+
+	//Inicializamos usart
+	BSP_USART1_Init();
+
+	/* Inicializamos el sensor de temperatura y humedad DHT11 */
+	BSP_DHT11_Init();
 }
 
 /* Delay bloqueante */
@@ -273,7 +286,28 @@ float BSP_SUELO_GetHum(void){
 	return ADCValue;
 }
 
+void BSP_DHT11_Init(){
+	init_dht11(&dht, &htim3, DHT11_USART_PORT, DHT11_USART_Tx_PIN);
+}
 
+
+uint8_t res[2];
+uint8_t *BSP_DHT11_Read(){
+	readDHT11(&dht);
+	res[0] = dht.temperature;
+	res[1] = dht.humidty;
+	return res;
+}
+
+
+void BSP_TIM3_Init(){
+	TIM3_Init();
+}
+
+
+void BSP_USART1_Init(){
+	USART1_UART_Init();
+}
 
 
 
