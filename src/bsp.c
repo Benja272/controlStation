@@ -1,92 +1,7 @@
-/**
-  ******************************************************************************
-  * @file    stm32f411e_discovery.c
-  * @author  MCD Application Team
-  * @brief   This file provides set of firmware functions to manage LEDs and
-  *          push-button available on STM32F411-Discovery Kit from STMicroelectronics.
-  ******************************************************************************
-  * @attention
-  *
-  * <h2><center>&copy; COPYRIGHT(c) 2017 STMicroelectronics</center></h2>
-  *
-  * Redistribution and use in source and binary forms, with or without modification,
-  * are permitted provided that the following conditions are met:
-  *   1. Redistributions of source code must retain the above copyright notice,
-  *      this list of conditions and the following disclaimer.
-  *   2. Redistributions in binary form must reproduce the above copyright notice,
-  *      this list of conditions and the following disclaimer in the documentation
-  *      and/or other materials provided with the distribution.
-  *   3. Neither the name of STMicroelectronics nor the names of its contributors
-  *      may be used to endorse or promote products derived from this software
-  *      without specific prior written permission.
-  *
-  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-  *
-  ******************************************************************************
-  */ 
-  
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f411e_discovery.h"
+#include "bsp.h"
 
-/** @defgroup BSP BSP
-  * @{
-  */ 
-
-/** @defgroup STM32F411E_DISCOVERY STM32F411E discovery
-  * @{
-  */   
-    
-/** @defgroup STM32F411E_discovery_LOW_LEVEL STM32F411E discovery LOW LEVEL
-  * @brief This file provides set of firmware functions to manage Leds and push-button
-  *        available on STM32F411-Discovery Kit from STMicroelectronics.
-  * @{
-  */ 
-
-/** @defgroup STM32F411E_discovery_LOW_LEVEL_Private_TypesDefinitions STM32F411E discovery LOW LEVEL Privat TypesDefinitions
-  * @{
-  */ 
-/**
-  * @}
-  */ 
-
-/** @defgroup STM32F411E_discovery_LOW_LEVEL_Private_Defines STM32F411E discovery LOW LEVEL Private Defines
-  * @{
-  */ 
-  
-/**
-  * @brief STM32F411E DISCO BSP Driver version number V1.0.3
-  */
-#define __STM32F411E_DISCO_BSP_VERSION_MAIN   (0x01) /*!< [31:24] main version */
-#define __STM32F411E_DISCO_BSP_VERSION_SUB1   (0x00) /*!< [23:16] sub1 version */
-#define __STM32F411E_DISCO_BSP_VERSION_SUB2   (0x03) /*!< [15:8]  sub2 version */
-#define __STM32F411E_DISCO_BSP_VERSION_RC     (0x00) /*!< [7:0]  release candidate */ 
-#define __STM32F411E_DISCO_BSP_VERSION         ((__STM32F411E_DISCO_BSP_VERSION_MAIN << 24)\
-                                             |(__STM32F411E_DISCO_BSP_VERSION_SUB1 << 16)\
-                                             |(__STM32F411E_DISCO_BSP_VERSION_SUB2 << 8 )\
-                                             |(__STM32F411E_DISCO_BSP_VERSION_RC))
-/**
-  * @}
-  */ 
-
-/** @defgroup STM32F411E_discovery_LOW_LEVEL_Private_Macros STM32F411E discovery LOW LEVEL Private Macros
-  * @{
-  */ 
-/**
-  * @}
-  */ 
-
-/** @defgroup STM32F411E_discovery_LOW_LEVEL_Private_Variables STM32F411E discovery LOW LEVEL Private Variables
-  * @{
-  */ 
 GPIO_TypeDef* GPIO_PORT[LEDn] = {LED4_GPIO_PORT, 
                                  LED3_GPIO_PORT, 
                                  LED5_GPIO_PORT,
@@ -106,13 +21,8 @@ uint32_t SpixTimeout = SPIx_TIMEOUT_MAX;    /*<! Value of Timeout when SPI commu
 
 static I2C_HandleTypeDef I2cHandle;
 static SPI_HandleTypeDef SpiHandle;
-/**
-  * @}
-  */ 
+ADC_HandleTypeDef hadc1;
 
-/** @defgroup STM32F411E_discovery_LOW_LEVEL_Private_FunctionPrototypes STM32F411E discovery LOW LEVEL Private FunctionPrototypes
-  * @{
-  */
 /* I2Cx bus function */
 static void    I2Cx_Init(void);
 static void    I2Cx_WriteData(uint16_t Addr, uint8_t Reg, uint8_t Value);
@@ -137,36 +47,74 @@ void    AUDIO_IO_DeInit(void);
 void    AUDIO_IO_Write(uint8_t Addr, uint8_t Reg, uint8_t Value);
 uint8_t AUDIO_IO_Read(uint8_t Addr, uint8_t Reg);
 
+
 /* Link function for COMPASS / ACCELERO peripheral */
 void    COMPASSACCELERO_IO_Init(void);
 void    COMPASSACCELERO_IO_ITConfig(void);
 void    COMPASSACCELERO_IO_Write(uint16_t DeviceAddr, uint8_t RegisterAddr, uint8_t Value);
 uint8_t COMPASSACCELERO_IO_Read(uint16_t DeviceAddr, uint8_t RegisterAddr);
-/**
-  * @}
-  */ 
 
-/** @defgroup STM32F411E_discovery_LOW_LEVEL_Private_Functions STM32F411E discovery LOW LEVEL Private Functions
-  * @{
-  */ 
-  
-/**
-  * @brief  This method returns the STM32F411 DISCO BSP Driver revision
-  * @retval version: 0xXYZR (8bits for each decimal, R for RC)
-  */
-uint32_t BSP_GetVersion(void)
-{
-  return __STM32F411E_DISCO_BSP_VERSION;
+
+
+/* Cosas agregadas */
+void 	Error_Handler(void);
+void 	SystemClock_Config(void);
+
+
+void    BSP_LUZ_Init(void);
+void    ADC1_Init(void);
+
+
+
+/* Inicializacion de la placa */
+void BSP_Init(){
+	HAL_Init();
+	SystemClock_Config();
+
+	/* Inicializacion de los LEDS */
+	BSP_LED_Init(LED_RED);
+	BSP_LED_Init(LED_GREEN);
+	BSP_LED_Init(LED_ORANGE);
+	BSP_LED_Init(LED_BLUE);
+
+	/* Inicializamos el sensor de luz */
+	BSP_LUZ_Init();
+
+	/* Inicializamos el conversor ADC */
+	ADC1_Init();
+}
+
+/* Delay bloqueante */
+void BSP_Delay(uint32_t ms){
+	HAL_Delay(ms);
+}
+
+void BSP_LUZ_Init(){
+	/* Inicializamos el clock del puerto del sensor */
+	 __HAL_RCC_GPIOC_CLK_ENABLE();
+	 __HAL_RCC_GPIOA_CLK_ENABLE();
+	 GPIO_InitTypeDef GPIO_InitStruct = {0};
+	 /* Configuracion GPIO del sensor */
+	 GPIO_InitStruct.Pin = SENSOR_LUZ_PIN;
+	 GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+	 GPIO_InitStruct.Pull = GPIO_NOPULL;
+	 HAL_GPIO_Init(SENSOR_LUZ_PORT, &GPIO_InitStruct);
+}
+
+uint32_t BSP_LUZ_GetState(){
+	uint32_t luz_state;
+	luz_state = HAL_GPIO_ReadPin(SENSOR_LUZ_PORT, SENSOR_LUZ_PIN);
+	return luz_state;
 }
 
 /**
   * @brief  Configures LED GPIO.
   * @param  Led: Specifies the Led to be configured. 
   *   This parameter can be one of following parameters:
-  *     @arg LED4
-  *     @arg LED3
-  *     @arg LED5
-  *     @arg LED6
+  *     @arg LED_GREEN
+  *     @arg LED_ORANGE
+  *     @arg LED_RED
+  *     @arg LED_BLUE
   */
 void BSP_LED_Init(Led_TypeDef Led)
 {
@@ -182,7 +130,6 @@ void BSP_LED_Init(Led_TypeDef Led)
   GPIO_InitStruct.Speed = GPIO_SPEED_FAST;
   
   HAL_GPIO_Init(GPIO_PORT[Led], &GPIO_InitStruct);
-  
   HAL_GPIO_WritePin(GPIO_PORT[Led], GPIO_PIN[Led], GPIO_PIN_RESET); 
 }
 
@@ -190,24 +137,23 @@ void BSP_LED_Init(Led_TypeDef Led)
   * @brief  Turns selected LED On.
   * @param  Led: Specifies the Led to be set on. 
   *   This parameter can be one of following parameters:
-  *     @arg LED4
-  *     @arg LED3
-  *     @arg LED5
-  *     @arg LED6  
+  *     @arg LED_GREEN
+  *     @arg LED_ORANGE
+  *     @arg LED_RED
+  *     @arg LED_BLUE
   */
 void BSP_LED_On(Led_TypeDef Led)
 {
   HAL_GPIO_WritePin(GPIO_PORT[Led], GPIO_PIN[Led], GPIO_PIN_SET); 
 }
-
 /**
   * @brief  Turns selected LED Off.
   * @param  Led: Specifies the Led to be set off. 
   *   This parameter can be one of following parameters:
-  *     @arg LED4
-  *     @arg LED3
-  *     @arg LED5
-  *     @arg LED6 
+  *     @arg LED_GREEN
+  *     @arg LED_ORANGE
+  *     @arg LED_RED
+  *     @arg LED_BLUE
   */
 void BSP_LED_Off(Led_TypeDef Led)
 {
@@ -218,10 +164,10 @@ void BSP_LED_Off(Led_TypeDef Led)
   * @brief  Toggles the selected LED.
   * @param  Led: Specifies the Led to be toggled. 
   *   This parameter can be one of following parameters:
-  *     @arg LED4
-  *     @arg LED3
-  *     @arg LED5
-  *     @arg LED6  
+  *     @arg LED_GREEN
+  *     @arg LED_ORANGE
+  *     @arg LED_RED
+  *     @arg LED_BLUE
   */
 void BSP_LED_Toggle(Led_TypeDef Led)
 {
@@ -279,6 +225,57 @@ uint32_t BSP_PB_GetState(Button_TypeDef Button)
 {
   return HAL_GPIO_ReadPin(BUTTON_PORT[Button], BUTTON_PIN[Button]);
 }
+
+
+
+float BSP_BOARD_GetTemp(void){
+	ADC_ChannelConfTypeDef sConfig = {0};
+	uint32_t ADCValue;
+	float Vsense, Temp;
+
+	sConfig.Channel = ADC_CHANNEL_TEMPSENSOR;
+	sConfig.Rank    = 1;
+	sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+	if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK) {
+			Error_Handler();
+	}
+
+	HAL_ADC_Start(&hadc1);
+
+	if(HAL_ADC_PollForConversion(&hadc1, 100) != HAL_OK){
+		return 0;
+	}
+
+	ADCValue = HAL_ADC_GetValue(&hadc1);
+	Vsense   = (float)ADCValue * 3000 / ((1<<12) - 1);
+	Temp     = (Vsense - 760) / 2.5 + 25;
+	return Temp;
+}
+
+/* Conectar el sensor al PA1 (ADC_CHANNEL_1) */
+float BSP_SUELO_GetHum(void){
+	ADC_ChannelConfTypeDef sConfig = {0};
+	float ADCValue;
+	sConfig.Channel = ADC_CHANNEL_1;
+	sConfig.Rank    = 1;
+	sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+
+	if(HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK){
+		Error_Handler();
+	}
+
+	HAL_ADC_Start(&hadc1);
+	if(HAL_ADC_PollForConversion(&hadc1, 100) != HAL_OK){
+			return 0;
+	}
+	ADCValue = HAL_ADC_GetValue(&hadc1);
+	ADCValue = 1 - ADCValue/4095;
+	return ADCValue;
+}
+
+
+
+
 
 /*******************************************************************************
                             BUS OPERATIONS
@@ -727,20 +724,106 @@ uint8_t COMPASSACCELERO_IO_Read(uint16_t DeviceAddr, uint8_t RegisterAddr)
   return I2Cx_ReadData(DeviceAddr, RegisterAddr);
 }
 
-/**
-  * @}
-  */ 
 
-/**
-  * @}
-  */ 
 
-/**
-  * @}
-  */ 
+void ADC1_Init(){
+	ADC_ChannelConfTypeDef sConfig = {0};
+	hadc1.Instance = ADC1;
+	hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV2;
+	hadc1.Init.Resolution = ADC_RESOLUTION_12B;
+	hadc1.Init.ScanConvMode = DISABLE;
+	hadc1.Init.ContinuousConvMode = DISABLE;
+	hadc1.Init.DiscontinuousConvMode = DISABLE;
+	hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+	hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+	hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+	hadc1.Init.NbrOfConversion = 1;
+	hadc1.Init.DMAContinuousRequests = DISABLE;
+	hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+	if (HAL_ADC_Init(&hadc1) != HAL_OK) {
+		Error_Handler();
+	}
+}
 
-/**
-  * @}
-  */   
+void HAL_ADC_MspInit(ADC_HandleTypeDef* adcHandle)
+{
 
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  if(adcHandle->Instance==ADC1)
+  {
+    /* ADC1 clock enable */
+    __HAL_RCC_ADC1_CLK_ENABLE();
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    /**ADC1 GPIO Configuration
+    	PA1 ------> ADC1_IN1
+    */
+    GPIO_InitStruct.Pin = GPIO_PIN_1;
+    GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  }
+}
+
+void HAL_ADC_MspDeInit(ADC_HandleTypeDef* adcHandle)
+{
+  if(adcHandle->Instance==ADC1)
+  {
+    /* Peripheral clock disable */
+    __HAL_RCC_ADC1_CLK_DISABLE();
+
+    /**ADC1 GPIO Configuration
+    	PA1 ------> ADC1_IN1
+    */
+    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_1);
+  }
+}
+
+
+
+void SystemClock_Config(void)
+{
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+
+  __HAL_RCC_PWR_CLK_ENABLE();
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+  RCC_OscInitStruct.PLL.PLLM = 8;
+  RCC_OscInitStruct.PLL.PLLN = 192;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV4;
+  RCC_OscInitStruct.PLL.PLLQ = 8;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
+
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+
+
+void Error_Handler()
+{
+  /* USER CODE BEGIN Error_Handler_Debug */
+  /* User can add his own implementation to report the HAL error return state */
+  __disable_irq();
+  while (1)
+  {
+  }
+  /* USER CODE END Error_Handler_Debug */
+}
