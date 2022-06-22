@@ -38,6 +38,9 @@ void BSP_DHT11_Init(void);
 uint8_t *BSP_DHT11_Read(void);
 //tim
 void BSP_TIM3_Init(void);
+void BSP_TIM3_SetCounter(void);
+uint32_t BSP_TIM3_GetCounter(void);
+void BSP_TIM3_IncCounter(void);
 //usart
 void BSP_USART1_Init(void);
 

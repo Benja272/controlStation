@@ -26,6 +26,7 @@ static I2C_HandleTypeDef I2cHandle;
 static SPI_HandleTypeDef SpiHandle;
 ADC_HandleTypeDef hadc1;
 dht11_t dht;
+uint32_t counter = -1;
 
 /* I2Cx bus function */
 static void    I2Cx_Init(void);
@@ -299,11 +300,26 @@ uint8_t *BSP_DHT11_Read(){
 	return res;
 }
 
-
+extern TIM_HandleTypeDef htim3;
 void BSP_TIM3_Init(){
 	TIM3_Init();
+	__HAL_TIM_SET_COUNTER(&htim3, 0);
+	HAL_TIM_Base_Start_IT(&htim3);
 }
 
+void BSP_TIM3_SetCounter(){
+	counter = 0;
+}
+
+uint32_t BSP_TIM3_GetCounter(){
+	return counter;
+}
+
+void BSP_TIM3_IncCounter(){
+	if(counter >= 0){
+		counter++;
+	}
+}
 
 void BSP_USART1_Init(){
 	USART1_UART_Init();

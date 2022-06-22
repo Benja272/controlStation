@@ -18,14 +18,15 @@ int main(void)
 	BSP_Init();
 	uint32_t estado_luz;
 	uint8_t *temp_hum;
-	float temp;
+	float temp = 0;
 	float humedad;
+	BSP_TIM3_SetCounter();
 	for(;;){
-		estado_luz = BSP_LUZ_GetState();
+		/*estado_luz = BSP_LUZ_GetState();
 		if (estado_luz) {
 			BSP_LED_Toggle(LED_BLUE);
 			BSP_Delay(500);
-		}
+		}*/
 		//temp    = BSP_BOARD_GetTemp();
 		//humedad = BSP_SUELO_GetHum();
 		temp_hum = BSP_DHT11_Read();
