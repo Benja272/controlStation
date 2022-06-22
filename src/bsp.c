@@ -16,6 +16,10 @@ const uint16_t GPIO_PIN[LEDn] = {LED4_PIN,
                                  LED6_PIN};
 
 
+
+
+
+
 /* Facilitan el uso de los botones de la board */
 
 typedef enum
@@ -48,6 +52,7 @@ ADC_HandleTypeDef 	hadc1;
 TIM_HandleTypeDef 	htim3;
 UART_HandleTypeDef 	huart1;
 dht11_t 			dht;
+uint32_t 			counter = -1;
 
 
 /******************************************************************************
@@ -170,16 +175,26 @@ uint8_t *BSP_DHT11_Read(){
 	return res;
 }
 
-
-/**
- * @brief	Obtiene una lectura del sensor de luz
- * @retval	luz_state: Devuelve el estado del sensor de luz
- */
-uint32_t BSP_LUZ_GetState(){
-	uint32_t luz_state;
-	luz_state = HAL_GPIO_ReadPin(SENSOR_LUZ_PORT, SENSOR_LUZ_PIN);
-	return luz_state;
+void BSP_TIM3_Init(){
+	TIM3_Init();
+	__HAL_TIM_SET_COUNTER(&htim3, 0);
+	HAL_TIM_Base_Start_IT(&htim3);
 }
+
+void BSP_TIM3_SetCounter(){
+	counter = 0;
+}
+
+uint32_t BSP_TIM3_GetCounter(){
+	return counter;
+}
+
+void BSP_TIM3_IncCounter(){
+	if(counter >= 0){
+		counter++;
+	}
+}
+
 
 
 /******************************************************************************
@@ -368,6 +383,8 @@ void BSP_TIM3_Init(){
 	  {
 	    Error_Handler();
 	  }
+	  HAL_TIM_Base_MspInit(&htim3);
+	  HAL_TIM_Base_Start_IT(&htim3);
 }
 
 

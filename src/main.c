@@ -25,6 +25,7 @@ int main(void)
 		dht11_measures    = BSP_DHT11_Read();
 		temperatura_dht11 = dht11_measures[0];
 		humedad_dht11     = dht11_measures[1];
+
 	}
 }
 

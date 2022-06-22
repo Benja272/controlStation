@@ -29,7 +29,9 @@ void     	BSP_LED_Toggle(Led_TypeDef Led);
 uint32_t    BSP_LUZ_GetState(void);
 uint32_t 	BSP_PB_GetState(Button_TypeDef Button);
 float       BSP_SUELO_GetHum(void);
-
+void 		BSP_TIM3_SetCounter(void);
+uint32_t	BSP_TIM3_GetCounter(void);
+void 		BSP_TIM3_IncCounter(void);
 
 
 #endif /* BSP_H_ */
