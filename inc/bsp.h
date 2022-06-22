@@ -3,6 +3,7 @@
 
 #include "stdint.h"
 
+/* LEDS */
 typedef enum
 {
   LED_GREEN = 0,
@@ -11,34 +12,24 @@ typedef enum
   LED_BLUE = 3
 } Led_TypeDef;
 
+/* USER BUTTON */
 typedef enum
 {
   BUTTON_KEY = 0,
 } Button_TypeDef;
 
-typedef enum
- {
-   BUTTON_MODE_GPIO = 0,
-   BUTTON_MODE_EXTI = 1
- }ButtonMode_TypeDef;
 
-
+float 		BSP_BOARD_GetTemp(void);
 void		BSP_Delay(uint32_t ms);
+uint8_t*	BSP_DHT11_Read(void);
 void 		BSP_Init(void);
 void     	BSP_LED_On(Led_TypeDef Led);
 void     	BSP_LED_Off(Led_TypeDef Led);
 void     	BSP_LED_Toggle(Led_TypeDef Led);
-uint32_t 	BSP_PB_GetState(Button_TypeDef Button);
 uint32_t    BSP_LUZ_GetState(void);
-float 		BSP_BOARD_GetTemp(void);
+uint32_t 	BSP_PB_GetState(Button_TypeDef Button);
 float       BSP_SUELO_GetHum(void);
-void 		Error_Handler(void);
-//dht11
-void BSP_DHT11_Init(void);
-uint8_t *BSP_DHT11_Read(void);
-//tim
-void BSP_TIM3_Init(void);
-//usart
-void BSP_USART1_Init(void);
+
+
 
 #endif /* BSP_H_ */
