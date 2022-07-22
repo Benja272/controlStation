@@ -1,72 +1,69 @@
-/**
- *  @file mk_dht11.c
- *	@brief DHT11 Library
- *  @date Created on: Oct 4, 2019
- *  @author Author: mesut.kilic
- *	@version 1.0.0
- */
-
 #include "mk_dht11.h"
 
 /**
  * @brief configure dht11 struct with given parameter
- * @param htim TIMER for calculate delays ex:&htim2
- * @param port GPIO port ex:GPIOA
- * @param pin GPIO pin ex:GPIO_PIN_2
- * @param dht struct to configure ex:&dht
+ * @param htim: 	TIMER for calculate delays ex:&htim2
+ * @param port: 	GPIO port ex:GPIOA
+ * @param pin:  	GPIO pin ex:GPIO_PIN_2
+ * @param dht:		struct to configure ex:&dht
  */
-void init_dht11(dht11_t *dht, TIM_HandleTypeDef *htim, GPIO_TypeDef* port, uint16_t pin){
+void init_dht11(dht11_t 		  	*dht,
+				TIM_HandleTypeDef 	*htim,
+				GPIO_TypeDef	  	*port,
+				uint16_t 			pin){
 	dht->htim = htim;
 	dht->port = port;
-	dht->pin = pin;
+	dht->pin  = pin;
 }
 
 /**
  * @brief set DHT pin direction with given parameter
- * @param dht struct for dht
- * @param pMode GPIO Mode ex:INPUT or OUTPUT
+ * @param dht:	 	 struct for dht
+ * @param pMode:	 GPIO Mode ex:INPUT or OUTPUT
  */
 void set_dht11_gpio_mode(dht11_t *dht, uint8_t pMode)
 {
 	GPIO_InitTypeDef GPIO_InitStruct = {0};
 
-	if(pMode == OUTPUT)
-	{
-	  GPIO_InitStruct.Pin = dht->pin;
-	  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-	  GPIO_InitStruct.Pull = GPIO_NOPULL;
+	if(pMode == OUTPUT){
+	  GPIO_InitStruct.Pin   = dht->pin;
+	  GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
+	  GPIO_InitStruct.Pull  = GPIO_NOPULL;
 	  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
 	  HAL_GPIO_Init(dht->port, &GPIO_InitStruct);
-	}else if(pMode == INPUT)
-	{
-	  GPIO_InitStruct.Pin = dht->pin;
-	  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-	  GPIO_InitStruct.Pull = GPIO_NOPULL;
+	}
+
+	else if(pMode == INPUT){
+	  GPIO_InitStruct.Pin   = dht->pin;
+	  GPIO_InitStruct.Mode  = GPIO_MODE_INPUT;
+	  GPIO_InitStruct.Pull  = GPIO_NOPULL;
 	  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
 	  HAL_GPIO_Init(dht->port, &GPIO_InitStruct);
 	}
 }
 
+
 /**
  * @brief reads dht11 value
- * @param dht struct for dht11
- * @return 1 if read ok 0 if something wrong in read
+ * @param dht: 	struct for dht11
+ * @return 1 if read it's ok 0, if there is something wrong in read.
  */
 uint8_t readDHT11(dht11_t *dht)
 {
-	uint16_t mTime1 = 0, mTime2 = 0, mBit = 0;
-	uint8_t humVal = 0, tempVal = 0, parityVal = 0, genParity = 0;
-	uint8_t mData[40];
+	uint16_t mTime1 = 0, mTime2  = 0, mBit = 0;
+	uint8_t  humVal = 0, tempVal = 0, parityVal = 0, genParity = 0;
+	uint8_t  mData[40];
 
-	//start comm
+	/* Communication starts*/
 	set_dht11_gpio_mode(dht, OUTPUT);			//set pin direction as input
 	HAL_GPIO_WritePin(dht->port, dht->pin, GPIO_PIN_RESET);
-	HAL_Delay(18);					//wait 18 ms in Low state
-	__disable_irq();	//disable all interupts to do only read dht otherwise miss timer
-	HAL_TIM_Base_Start(dht->htim); //start timer
+	HAL_Delay(18);					// wait 18 ms in Low state
+	__disable_irq();				// disable all interupts to do only read dht otherwise miss timer
+	HAL_TIM_Base_Start(dht->htim); 	// start timer
 	set_dht11_gpio_mode(dht, INPUT);
-	//check dht answer
-	__HAL_TIM_SET_COUNTER(dht->htim, 0);				//set timer counter to zero
+
+	/* Check dht answer */
+	__HAL_TIM_SET_COUNTER(dht->htim, 0); //set timer counter to zero
 	while(HAL_GPIO_ReadPin(dht->port, dht->pin) == GPIO_PIN_SET){
 		if((uint16_t)__HAL_TIM_GET_COUNTER(dht->htim) > 500){
 			__enable_irq();
@@ -80,6 +77,7 @@ uint8_t readDHT11(dht11_t *dht)
 			return 0;
 		}
 	}
+
 	mTime1 = (uint16_t)__HAL_TIM_GET_COUNTER(dht->htim);
 	__HAL_TIM_SET_COUNTER(dht->htim, 0);
 	while(HAL_GPIO_ReadPin(dht->port, dht->pin) == GPIO_PIN_SET){

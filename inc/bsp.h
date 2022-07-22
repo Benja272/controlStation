@@ -6,10 +6,10 @@
 /* LEDS */
 typedef enum
 {
-  LED_GREEN = 0,
+  LED_GREEN  = 0,
   LED_ORANGE = 1,
-  LED_RED = 2,
-  LED_BLUE = 3
+  LED_RED    = 2,
+  LED_BLUE   = 3
 } Led_TypeDef;
 
 /* USER BUTTON */
@@ -28,8 +28,6 @@ void     	BSP_LED_Off(Led_TypeDef Led);
 void     	BSP_LED_Toggle(Led_TypeDef Led);
 uint32_t    BSP_LUZ_GetState(void);
 uint32_t 	BSP_PB_GetState(Button_TypeDef Button);
-float       BSP_SUELO_GetHum(void);
-
-
+uint32_t    BSP_SUELO_GetHum(void);
 
 #endif /* BSP_H_ */

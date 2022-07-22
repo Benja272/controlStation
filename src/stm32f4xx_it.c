@@ -1,13 +1,3 @@
-/**
-  ******************************************************************************
-  * @file    stm32f4xx_it.c
-  * @author  Ac6
-  * @version V1.0
-  * @date    02-Feb-2015
-  * @brief   Default Interrupt Service Routines.
-  ******************************************************************************
-*/
-
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx.h"
@@ -27,7 +17,9 @@
 /*            	  	    Processor Exceptions Handlers                         */
 /******************************************************************************/
 
-extern TIM_HandleTypeDef htim3;
+extern TIM_HandleTypeDef  htim3;
+extern UART_HandleTypeDef huart1;
+extern UART_HandleTypeDef huart2;
 /**
   * @brief  This function handles SysTick Handler, but only if no RTOS defines it.
   * @param  None
@@ -42,13 +34,28 @@ void SysTick_Handler(void)
 #endif
 }
 
+/**
+  * @brief This function handles TIM3 global interrupt.
+  */
 void TIM3_IRQHandler(void)
 {
-  /* USER CODE BEGIN TIM3_IRQn 0 */
-
-  /* USER CODE END TIM3_IRQn 0 */
   HAL_TIM_IRQHandler(&htim3);
-  /* USER CODE BEGIN TIM3_IRQn 1 */
-
-  /* USER CODE END TIM3_IRQn 1 */
 }
+
+/**
+  * @brief This function handles USART1 global interrupt.
+  */
+void USART1_IRQHandler(void)
+{
+  HAL_UART_IRQHandler(&huart1);
+}
+
+/**
+  * @brief This function handles USART2 global interrupt.
+  */
+void USART2_IRQHandler(void)
+{
+  HAL_UART_IRQHandler(&huart2);
+}
+
+

@@ -2,6 +2,7 @@
 #include "stm32f411e_discovery.h"
 #include "mk_dht11.h"
 #include "bsp.h"
+#include "stdio.h"
 
 /* Estructuras que facilitan el manejo de los LEDS */
 
@@ -29,7 +30,6 @@ const uint16_t 	BUTTON_PIN[BUTTONn]  = {KEY_BUTTON_PIN};
 const uint8_t 	BUTTON_IRQn[BUTTONn] = {KEY_BUTTON_EXTI_IRQn};
 
 
-
 /* Definiciones del modulo */
 void 		SystemClock_Config(void);
 void 		Error_Handler(void);
@@ -39,6 +39,7 @@ void 		BSP_LED_Init(Led_TypeDef Led);
 void 		BSP_DHT11_Init(void);
 void 		BSP_TIM3_Init(void);
 void 		BSP_USART1_Init(void);
+void 		BSP_USART2_Init(void);
 void 		BSP_PB_Init(Button_TypeDef 	   Button,
 						ButtonMode_TypeDef ButtonMode);
 
@@ -47,6 +48,7 @@ void 		BSP_PB_Init(Button_TypeDef 	   Button,
 ADC_HandleTypeDef 	hadc1;
 TIM_HandleTypeDef 	htim3;
 UART_HandleTypeDef 	huart1;
+UART_HandleTypeDef 	huart2;
 dht11_t 			dht;
 
 
@@ -105,7 +107,7 @@ void BSP_LED_Toggle(Led_TypeDef Led)
 
 /**
  * @brief	Obtiene una lectura del sensor de temperatura de la placa
- * @retval	Temp: Temperatura en Celsius de la placas
+ * @retval	Temp: Temperatura en Celsius de la placa
  */
 float BSP_BOARD_GetTemp(void){
 	ADC_ChannelConfTypeDef sConfig = {0};
@@ -132,11 +134,10 @@ float BSP_BOARD_GetTemp(void){
 }
 
 /**
- * @brief	Obtiene una lectura del sensor de humedad del suelo,
- * 			este sensor debe conectarse al pin PA1 (ADC_CHANNEL_1)
+ * @brief	Obtiene una lectura del sensor de humedad del suelo
  * @retval	Hum: Devuelve la humedad del suelo medida.
  */
-float BSP_SUELO_GetHum(void){
+uint32_t BSP_SUELO_GetHum(void){
 	ADC_ChannelConfTypeDef sConfig = {0};
 	float ADCValue, Hum;
 	sConfig.Channel = ADC_CHANNEL_1;
@@ -153,7 +154,13 @@ float BSP_SUELO_GetHum(void){
 	}
 	ADCValue = HAL_ADC_GetValue(&hadc1);
 	Hum = 1 - ADCValue/4095;
-	return Hum;
+	Hum = (Hum - 0.25) * 400;
+	if (Hum < 0)
+		return 0;
+	else if (Hum < 100)
+		return Hum;
+	else
+		return 100;
 }
 
 
@@ -215,6 +222,7 @@ void BSP_Delay(uint32_t ms){
 void BSP_Init(){
 	/* Inicializacion de la libreria HAL */
 	HAL_Init();
+
 	/* Configuracion de los clocks */
 	SystemClock_Config();
 
@@ -230,8 +238,11 @@ void BSP_Init(){
 	ADC1_Init();
 	/* Inicializamos el timer 3 */
 	BSP_TIM3_Init();
+
 	/* Inicializamos usart */
 	BSP_USART1_Init();
+	BSP_USART2_Init();
+
 	/* Inicializamos el sensor de temperatura y humedad DHT11 */
 	BSP_DHT11_Init();
 
@@ -372,20 +383,34 @@ void BSP_TIM3_Init(){
 
 
 void BSP_USART1_Init(){
-	  huart1.Instance = USART1;
-	  huart1.Init.BaudRate = 115200;
-	  huart1.Init.WordLength = UART_WORDLENGTH_8B;
-	  huart1.Init.StopBits = UART_STOPBITS_1;
-	  huart1.Init.Parity = UART_PARITY_NONE;
-	  huart1.Init.Mode = UART_MODE_TX_RX;
-	  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-	  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
-	  if (HAL_UART_Init(&huart1) != HAL_OK)
-	  {
-	    Error_Handler();
-	  }
+	huart1.Instance = USART1;
+	huart1.Init.BaudRate = 38400;
+	huart1.Init.WordLength = UART_WORDLENGTH_8B;
+	huart1.Init.StopBits = UART_STOPBITS_1;
+	huart1.Init.Parity = UART_PARITY_NONE;
+	huart1.Init.Mode = UART_MODE_TX_RX;
+	huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+	huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+	if (HAL_UART_Init(&huart1) != HAL_OK)
+	{
+	  Error_Handler();
+	}
 }
 
+void BSP_USART2_Init(){
+	huart2.Instance = USART2;
+	huart2.Init.BaudRate = 38400;
+	huart2.Init.WordLength = UART_WORDLENGTH_8B;
+	huart2.Init.StopBits = UART_STOPBITS_1;
+	huart2.Init.Parity = UART_PARITY_NONE;
+	huart2.Init.Mode = UART_MODE_TX_RX;
+	huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+	huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+	if (HAL_UART_Init(&huart2) != HAL_OK)
+	{
+		Error_Handler();
+	}
+}
 
 /******************************************************************************
  * 				    FUNCIONES DE INICIALIZACION (MSP) 					      *
@@ -454,13 +479,12 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle) {
   {
     /* USART1 clock enable */
     __HAL_RCC_USART1_CLK_ENABLE();
-
     __HAL_RCC_GPIOA_CLK_ENABLE();
     __HAL_RCC_GPIOB_CLK_ENABLE();
     /*
     USART1 GPIO Configuration
-    PA15     ------> USART1_TX
-    PB7     ------> USART1_RX
+    PA15  ------> USART1_TX
+    PB7   ------> USART1_RX
     */
     GPIO_InitStruct.Pin = GPIO_PIN_15;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -475,20 +499,59 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle) {
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF7_USART1;
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+    /* USART1 interrupt Init */
+    HAL_NVIC_SetPriority(USART1_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(USART1_IRQn);
   }
+  else if(uartHandle->Instance==USART2) {
+    /* Peripheral clock enable */
+    __HAL_RCC_USART2_CLK_ENABLE();
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    /*
+     * *USART2 GPIO Configuration
+    	PA2  ------> USART2_TX
+    	PA3  ------> USART2_RX
+    */
+    GPIO_InitStruct.Pin = GPIO_PIN_2|GPIO_PIN_3;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+    GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+    /* USART2 interrupt Init */
+    HAL_NVIC_SetPriority(USART2_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(USART2_IRQn);
+    }
 }
 
 void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle) {
   if(uartHandle->Instance==USART1) {
-    /* Peripheral clock disable */
-    __HAL_RCC_USART1_CLK_DISABLE();
-    /*
-    USART1 GPIO Configuration
-    PA15     ------> USART1_TX
-    PB7     ------> USART1_RX
-    */
-    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_15);
-    HAL_GPIO_DeInit(GPIOB, GPIO_PIN_7);
+	  /* Peripheral clock disable */
+	  __HAL_RCC_USART1_CLK_DISABLE();
+	  /*
+    	USART1 GPIO Configuration
+    	PA15  ------> USART1_TX
+    	PB7   ------> USART1_RX
+	   */
+	  HAL_GPIO_DeInit(GPIOA, GPIO_PIN_15);
+	  HAL_GPIO_DeInit(GPIOB, GPIO_PIN_7);
+
+	  /* USART1 interrupt DeInit */
+	  HAL_NVIC_DisableIRQ(USART1_IRQn);
+  }
+  else if(uartHandle->Instance==USART2) {
+	  /* Peripheral clock disable */
+	  __HAL_RCC_USART2_CLK_DISABLE();
+	  /*
+	   * *USART2 GPIO Configuration
+  	  	  PA2     ------> USART2_TX
+  	  	  PA3     ------> USART2_RX
+	   */
+	  HAL_GPIO_DeInit(GPIOA, GPIO_PIN_2|GPIO_PIN_3);
+	  /* USART2 interrupt DeInit */
+	  HAL_NVIC_DisableIRQ(USART2_IRQn);
   }
 }
 
@@ -501,7 +564,9 @@ void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
-
+  /*new*/
+  __HAL_RCC_SYSCFG_CLK_ENABLE();
+  /*new*/
   __HAL_RCC_PWR_CLK_ENABLE();
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
