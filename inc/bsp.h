@@ -29,5 +29,6 @@ void     	BSP_LED_Toggle(Led_TypeDef Led);
 uint32_t    BSP_LUZ_GetState(void);
 uint32_t 	BSP_PB_GetState(Button_TypeDef Button);
 uint32_t    BSP_SUELO_GetHum(void);
+void 		BSP_WIFI_Init(void);
 
 #endif /* BSP_H_ */
