@@ -3,6 +3,7 @@
 #include "mk_dht11.h"
 #include "bsp.h"
 #include "stdio.h"
+#include "string.h"
 
 
 /* Estructuras que facilitan el manejo de los LEDS */
@@ -45,6 +46,9 @@ void 		BSP_USART2_Init(void);
 void 		BSP_PB_Init(Button_TypeDef 	   Button,
 						ButtonMode_TypeDef ButtonMode);
 void 		HAL_UART_RxCpltCallback ( UART_HandleTypeDef *huart);
+void		BSP_WIFI_send_msg(char *msg, uint8_t string_len);
+void 		BSP_WIFI_connect(void);
+uint8_t     BSP_WIFI_status(void);
 void 		Error_Handler(void);
 
 
@@ -197,6 +201,75 @@ uint32_t BSP_LUZ_GetState(){
 	return luz_state;
 }
 
+/**
+ * @brief	Envia un comando a el modulo wifi
+ */
+
+void BSP_WIFI_send_msg(char *msg, uint8_t string_len){
+	uint8_t n=string_len/5;
+	uint8_t mod=string_len%5;
+	uint8_t msg_len;
+	char dest[6], comm_end[3], comm[50];
+	strcpy(comm_end, "\r\n");
+	if(mod>0){
+		n++;
+	}
+	for (uint8_t i=0;i<n;i++){
+		//strcpy((char *)comm, "ATPT=5,1:");
+		strncpy(dest, &msg[5*i], sizeof(dest)-1);
+		dest[5]='\0';
+		msg_len = strlen(dest);
+		sprintf((char *)comm, "ATPT=%d,1:", msg_len);
+		strcat((char *)comm, dest);
+		strcat((char *)comm, comm_end);
+		HAL_UART_Transmit_IT(&huart2, (uint8_t *)comm, 11 + msg_len);
+	}
+}
+
+uint8_t BSP_WIFI_status(void){
+	return (init_wifi>=3);
+}
+
+void BSP_WIFI_transmit_it(char * msg){
+	uint8_t command[50];
+	uint8_t len = strlen(msg);
+	strcpy((char *)command, msg);
+	HAL_UART_Transmit_IT(&huart2, command, len);
+}
+
+void BSP_WIFI_connect(){
+	/* Checkeamos si hay que inicializar el Access Point */
+	if(check_ok == 2){
+		check_ok = 0;
+
+		switch (init_wifi){
+		case 1:
+			//BSP_Delay(2000);
+			BSP_WIFI_transmit_it("ATPN=MICRO2023,");
+			BSP_Delay(2000);
+			BSP_WIFI_transmit_it("MICRO2023\r\n");
+			//sprintf((char *)command, "ATPA=MICRO2022,,11,0\r\n");
+			//HAL_UART_Transmit_IT(&huart2, command, 22);
+			/* Pasamos a la siguiente etapa*/
+			init_wifi++;
+			break;
+		case 2:
+			BSP_Delay(500);
+			BSP_WIFI_transmit_it("ATPC=0,192.168.1");
+			BSP_Delay(2000);
+			BSP_WIFI_transmit_it("37.126,3000\r\n");
+			//sprintf((char *)command, "ATPS=0,3000\r\n");
+			//HAL_UART_Transmit_IT(&huart2, command, 13);
+
+			/* Pasamos a la siguiente etapa*/
+			init_wifi=3;
+			break;
+		default:
+			break;
+		}
+	}
+
+}
 
 /******************************************************************************
  * 				     	FUNCIONES DE MISCELANEAS   					          *
@@ -240,54 +313,6 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 		else if (rx_data == 75 && check_ok == 1)
 			check_ok = 2;
 
-		/* Checkeamos si hay que inicializar el Access Point */
-		if(check_ok == 2){
-			check_ok = 0;
-			uint8_t command[30];
-			if(init_wifi == 1){
-				/* Seteamos el modo wifi del modulo */
-				sprintf((char *)command, "ATPW=2\r\n");
-				HAL_UART_Transmit_IT(&huart2, command, 8);
-
-				/* Pasamos a la siguiente etapa*/
-				init_wifi++;
-			}
-			else if (init_wifi == 2){
-				/* Configuramos el Acess Point */
-				sprintf((char *)command, "ATPA=MICRO2022,,11,0\r\n");
-				HAL_UART_Transmit_IT(&huart2, command, 23);
-
-				/* Pasamos a la siguiente etapa*/
-				init_wifi++;
-			}
-			else if (init_wifi == 3){
-				/* Configuramos para que la asignacion de IP sea dinamica DHCP*/
-				sprintf((char *)command, "ATPH=1,1\r\n");
-				HAL_UART_Transmit_IT(&huart2, command, 10);
-
-				/* Pasamos a la siguiente etapa*/
-				init_wifi++;
-			}
-			else if (init_wifi == 4){
-				/* Creamos un servidor TCP en el puerto 3000 */
-				sprintf((char *)command, "ATPS=0,3001\r\n");
-				HAL_UART_Transmit_IT(&huart2, command, 13);
-				/* Pasamos a la siguiente etapa*/
-				init_wifi++;
-			}
-			else if (init_wifi == 5){
-				/* Iniciamos el Web Server */
-				sprintf((char *)command, "ATSW=c\r\n");
-				HAL_UART_Transmit_IT(&huart2, command, 8);
-
-				/* Pasamos a la siguiente etapa*/
-				init_wifi++;
-			}
-			else if (init_wifi == 6){
-				/* Finalizamos la inicializacion */
-				init_wifi = 0;
-			}
-		}
 
 		/* Recibimos el siguiente byte */
 		HAL_UART_Receive_IT(&huart2, &rx_data, 1);

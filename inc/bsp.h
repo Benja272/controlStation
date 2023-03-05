@@ -30,5 +30,8 @@ uint32_t    BSP_LUZ_GetState(void);
 uint32_t 	BSP_PB_GetState(Button_TypeDef Button);
 uint32_t    BSP_SUELO_GetHum(void);
 void 		BSP_WIFI_Init(void);
+void 		BSP_WIFI_send_msg(char *msg, uint8_t string_len);
+void 		BSP_WIFI_connect(void);
+uint8_t		BSP_WIFI_status(void);
 
 #endif /* BSP_H_ */
