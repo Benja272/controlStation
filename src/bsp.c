@@ -244,22 +244,18 @@ void BSP_WIFI_connect(){
 
 		switch (init_wifi){
 		case 1:
-			//BSP_Delay(2000);
 			BSP_WIFI_transmit_it("ATPN=MICRO2023,");
-			BSP_Delay(2000);
+			// BSP_Delay(2000);
 			BSP_WIFI_transmit_it("MICRO2023\r\n");
-			//sprintf((char *)command, "ATPA=MICRO2022,,11,0\r\n");
-			//HAL_UART_Transmit_IT(&huart2, command, 22);
+
 			/* Pasamos a la siguiente etapa*/
 			init_wifi++;
 			break;
 		case 2:
-			BSP_Delay(500);
+			// BSP_Delay(500);
 			BSP_WIFI_transmit_it("ATPC=0,192.168.1");
-			BSP_Delay(2000);
+			// BSP_Delay(2000);
 			BSP_WIFI_transmit_it("37.126,3000\r\n");
-			//sprintf((char *)command, "ATPS=0,3000\r\n");
-			//HAL_UART_Transmit_IT(&huart2, command, 13);
 
 			/* Pasamos a la siguiente etapa*/
 			init_wifi=3;
@@ -268,7 +264,6 @@ void BSP_WIFI_connect(){
 			break;
 		}
 	}
-
 }
 
 /******************************************************************************
@@ -351,7 +346,11 @@ void BSP_Init(){
 	/* Inicializamos el sensor de temperatura y humedad DHT11 */
 	BSP_DHT11_Init();
 
+	/* Incializacion del boton de la board */
 	BSP_PB_Init(BUTTON_KEY, BUTTON_MODE_GPIO);
+
+	/* Inicializacion del modulo wifi */
+	BSP_WIFI_Init();
 }
 
 void BSP_DHT11_Init(){
@@ -522,7 +521,6 @@ void BSP_WIFI_Init(){
 	sprintf((char *)command, "AT\r\n");
 	HAL_UART_Receive_IT(&huart2, &rx_data, 1);
 	HAL_UART_Transmit(&huart2, command, 4, 100);
-
 	/* Iniciamos la secuencia de comandos AT */
 	init_wifi = 1;
 }
