@@ -24,7 +24,7 @@ int main(void)
 
 
 	BSP_Init();
-	uint8_t sended=0;
+	uint8_t sended=1;
 	uint8_t *dht11_measures;
 	float 	 temperatura_board;
 	float    temperatura_dht11;
@@ -56,8 +56,7 @@ int main(void)
 		create_msg(sensor_inputs, msg);
 		if(BSP_WIFI_status() && sended){
 			sended=0;
-			char msg[20];
-			strcpy(msg, "ABCDEFGHIJKL");
+			//strcpy(msg, "ABCDEFGHIJKL");
 			BSP_WIFI_send_msg(msg, strlen(msg));
 		}
 	}
