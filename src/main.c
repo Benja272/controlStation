@@ -1,6 +1,9 @@
 #include "bsp.h"
 #include "string.h"
 #include "FreeRTOS.h"
+#include "queue.h"
+#include "semphr.h"
+#include "task.h"
 
 /* Variables de sensores */
 volatile uint8_t *dht11_measures;
@@ -13,6 +16,8 @@ volatile float 	  sensor_inputs[4];
 /* Semaforos */
 SemaphoreHandle_t semaforo_1  = xSemaphoreCreateBinary();
 SemaphoreHandle_t semaforo_it = xSemaphoreCreateBinary();
+//#define semaforo_1  xSemaphoreCreateBinary()
+//#define semaforo_it  xSemaphoreCreateBinary()
 
 /**************************************** TASKS ****************************************/
 
@@ -22,7 +27,7 @@ void vConectarWifi( void *pvParameters ){
 		/* Conectamos el modulo wifi a la red */
 		BSP_WIFI_connect();
 		/* Esperamos a que se conecte el modulo */
-		vTaskDelay(pdMS_TO_TICKS(1000));
+		//vTaskDelay(pdMS_TO_TICKS(1000));
 		break;
 	}
 	/* Borramos la task ya que cumplio su proposito */

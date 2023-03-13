@@ -222,16 +222,17 @@ void BSP_WIFI_send_msg(char *msg, uint8_t string_len){
 		sprintf((char *)comm, "ATPT=%d,1:", msg_len);
 		strcat((char *)comm, dest);
 		strcat((char *)comm, comm_end);
-		HAL_UART_Transmit_IT(&huart2, (uint8_t *)comm, 11 + msg_len);
+		BSP_WIFI_transmit_it((char *)comm);
+		BSP_Delay(500);
 	}
 }
 
 uint8_t BSP_WIFI_status(void){
-	return (init_wifi>=3);
+	return (init_wifi==4);
 }
 
 void BSP_WIFI_transmit_it(char * msg){
-	uint8_t command[50];
+	uint8_t command[50] = {'\0'};
 	uint8_t len = strlen(msg);
 	strcpy((char *)command, msg);
 	HAL_UART_Transmit_IT(&huart2, command, len);
@@ -239,29 +240,43 @@ void BSP_WIFI_transmit_it(char * msg){
 
 void BSP_WIFI_connect(){
 	/* Checkeamos si hay que inicializar el Access Point */
-	if(check_ok == 2){
-		check_ok = 0;
-
-		switch (init_wifi){
-		case 1:
-			BSP_WIFI_transmit_it("ATPN=MICRO2023,");
-			// BSP_Delay(2000);
-			BSP_WIFI_transmit_it("MICRO2023\r\n");
-
-			/* Pasamos a la siguiente etapa*/
-			init_wifi++;
+	for (;;){
+		if(BSP_WIFI_status()){
 			break;
-		case 2:
-			// BSP_Delay(500);
-			BSP_WIFI_transmit_it("ATPC=0,192.168.1");
-			// BSP_Delay(2000);
-			BSP_WIFI_transmit_it("37.126,3000\r\n");
+		}
+		if(check_ok == 2){
+			check_ok = 0;
 
-			/* Pasamos a la siguiente etapa*/
-			init_wifi=3;
-			break;
-		default:
-			break;
+			switch (init_wifi){
+			case 1:
+				//BSP_Delay(2000);
+				BSP_WIFI_transmit_it("ATPN=MICRO2023,");
+				BSP_Delay(2000);
+				BSP_WIFI_transmit_it("MICRO2023\r\n");
+				//sprintf((char *)command, "ATPA=MICRO2022,,11,0\r\n");
+				//HAL_UART_Transmit_IT(&huart2, command, 22);
+				/* Pasamos a la siguiente etapa*/
+				init_wifi++;
+				break;
+			case 2:
+				BSP_Delay(500);
+				BSP_WIFI_transmit_it("ATPC=0,192.168.1");
+				BSP_Delay(2000);
+				BSP_WIFI_transmit_it("37.126,30");
+				BSP_Delay(3000);
+				BSP_WIFI_transmit_it("00\r\n");
+				//sprintf((char *)command, "ATPS=0,3000\r\n");
+				//HAL_UART_Transmit_IT(&huart2, command, 13);
+
+				/* Pasamos a la siguiente etapa*/
+				init_wifi = 3;
+				break;
+			case 3:
+				init_wifi = 4;
+				break;
+			default:
+				break;
+			}
 		}
 	}
 }
